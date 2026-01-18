@@ -68,7 +68,7 @@ class Linear(nn.Module):
             f"bias={self.bias is not None}"
         )
 
-# Copied from Callum McDougall's ARENA curriculum
+# `Flatten` from Callum McDougall's ARENA curriculum
 class Flatten(nn.Module):
     def __init__(self, start_dim: int = 1, end_dim: int = -1) -> None:
         super().__init__()
@@ -94,3 +94,46 @@ class Flatten(nn.Module):
 
     def extra_repr(self) -> str:
         return ", ".join([f"{key}={getattr(self, key)}" for key in ["start_dim", "end_dim"]])
+
+
+class MLP(nn.Module):
+    # TODO: update so can take arbitrary inputs, outputs, and number of hidden layers
+    # TODO: at that point will probably need a separate mlp.py file
+    """
+    Simple MLP w/ two hidden layers, for MNIST
+
+    Model architecture
+    Input: bx28x28 -> shape [batch 28 28]
+    Linear: 28**2 inputs, 100 outputs -> shape [batch 28**2 100]
+    ReLU
+    Linear: 100 inputs, 10 outputs -> shape [batch 100 10]
+    """
+    def __init__(self):
+        super().__init__()
+
+        self.flatten = Flatten()
+        self.lin_1 = Linear(in_features=28**2, out_features=100)
+        self.relu = ReLU()
+        self.lin_2 = Linear(in_features=100, out_features=10)
+
+
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Returns logits of size 10
+
+        Args:
+            x (Tensor): Shape [batch 28 28]
+        
+        Returns:
+            logits (Tensor): Shape [batch 10]
+        """
+
+        # keep batch dimension
+        x_f = self.flatten(x)
+        hid = self.relu(self.lin_1(x_f))
+
+        logits = self.lin_2(hid)
+
+        return logits
+
+        
