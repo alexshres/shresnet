@@ -1,0 +1,96 @@
+import torch as t
+import einops
+import math
+import torch.nn as nn
+
+from torch import Tensor
+
+class ReLU(nn.Module):
+    """
+    ReLU activation function
+
+    Has no parameters
+    """
+    def forward(self, x: Tensor) -> Tensor:
+        return t.maximum(t.tensor(0.0), x)
+
+class Linear(nn.Module):
+    """
+    Linear layer implementation with Uniform Kaiming initialization
+    """
+    def __init__(self, in_features, out_features, bias=True):
+        super().__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+
+        weight = t.rand(out_features, in_features)
+
+        # kaiming init
+        scaling_factor = math.sqrt(in_features)
+        weight = scaling_factor*(2*weight - 1)
+        self.weight = nn.Parameter(weight)
+
+        # bias init
+        if bias:
+            bias = scaling_factor*(2*t.rand(out_features) - 1)
+            self.bias = nn.Parameter(bias)
+        else:
+            self.bias = None
+
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Forward layer of linear:
+
+        out = x*self.weight^{T} + self.bias
+
+        
+        Args:
+            x (Tensor): data with shape [batch input_features]
+
+        Returns:
+            Tensor: output of linear model with shape [batch output_features]
+        """
+
+        out = einops.einsum(
+            x,
+            self.weight,
+            "... i, o i -> ... o"
+        )
+
+        if self.bias is not None:
+            out += self.bias
+
+        return out
+
+    def extra_repr(self) -> str:
+        return (
+            f"in_features={self.in_features}, out_features={self.out_features}, "
+            f"bias={self.bias is not None}"
+        )
+
+# Copied from Callum McDougall's ARENA curriculum
+class Flatten(nn.Module):
+    def __init__(self, start_dim: int = 1, end_dim: int = -1) -> None:
+        super().__init__()
+        self.start_dim = start_dim
+        self.end_dim = end_dim
+
+    def forward(self, input: Tensor) -> Tensor:
+        """
+        Flatten out dimensions from start_dim to end_dim, inclusive of both.
+        """
+        shape = input.shape
+
+        # Get start & end dims, handling negative indexing for end dim
+        start_dim = self.start_dim
+        end_dim = self.end_dim if self.end_dim >= 0 else len(shape) + self.end_dim
+
+        # Get the shapes to the left / right of flattened dims, as well as size of flattened middle
+        shape_left = shape[:start_dim]
+        shape_right = shape[end_dim + 1 :]
+        shape_middle = t.prod(t.tensor(shape[start_dim : end_dim + 1])).item()
+
+        return t.reshape(input, shape_left + (shape_middle,) + shape_right) # type: ignore
+
+    def extra_repr(self) -> str:
+        return ", ".join([f"{key}={getattr(self, key)}" for key in ["start_dim", "end_dim"]])
