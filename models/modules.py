@@ -111,10 +111,11 @@ class MLP(nn.Module):
     def __init__(self):
         super().__init__()
 
+        # naming conventions to match PyTorch
         self.flatten = Flatten()
-        self.lin_1 = Linear(in_features=28**2, out_features=100)
+        self.linear1 = Linear(in_features=28**2, out_features=100)
         self.relu = ReLU()
-        self.lin_2 = Linear(in_features=100, out_features=10)
+        self.linear2 = Linear(in_features=100, out_features=10)
 
 
     def forward(self, x: Tensor) -> Tensor:
@@ -130,9 +131,9 @@ class MLP(nn.Module):
 
         # keep batch dimension
         x_f = self.flatten(x)
-        hid = self.relu(self.lin_1(x_f))
+        hid = self.relu(self.linear1(x_f))
 
-        logits = self.lin_2(hid)
+        logits = self.linear2(hid)
 
         return logits
 
